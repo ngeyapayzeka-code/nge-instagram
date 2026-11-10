@@ -1,0 +1,39 @@
+name: Instagram yayın
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: instagram-yayin
+  cancel-in-progress: false
+
+jobs:
+  yayinla:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Zamanı gelen gönderileri paylaş
+        env:
+          IG_TOKEN: ${{ secrets.IG_TOKEN }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IMAGE_BASE_URL: https://raw.githubusercontent.com/${{ github.repository }}/${{ github.ref_name }}
+        run: node yayin.mjs
+
+      - name: Durumu kaydet
+        if: always()
+        run: |
+          git config user.name "nge-yayin-botu"
+          git config user.email "actions@users.noreply.github.com"
+          mkdir -p kuyruk
+          git add kuyruk
+          git diff --cached --quiet || (git commit -m "Yayın durumu güncellendi" && git push)
